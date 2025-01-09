@@ -63,7 +63,7 @@ def compare_configs(default_conf_path, customer_conf_path):
     qw_new_config = default_data.get("qw_new", [])
 
     # 读取WAF_rules.xlsx以获取规则名称
-    rules_df = pd.read_excel('/Users/badwoman/waf_new/rule_diff/config/WAF_rules.xlsx')
+    rules_df = pd.read_excel('config/WAF_rules.xlsx')
     rules_dict = dict(zip(rules_df['历史规则ID映射'], rules_df['规则名称']))
 
     # 遍历客户配置中的配置名
