@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAF事件库配置文件对比</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="alert alert-warning text-left" role="alert">
+            注意:<br>
+            1.请确保上传的文件为.conf格式。<br>
+            2.请上传一键导出配置文件中的sign_rule_set_selfdef.conf。
+        </div>
+        <h1 class="text-center mb-4">WAF事件库配置文件对比</h1>
+        <div id="alert-container" style="display: none;" class="alert alert-info text-center" role="alert"></div>
+        <form action="/upload/default" method="post" enctype="multipart/form-data" class="mb-3">
+            <div class="form-group">
+                <label for="defaultConfig">默认配置文件:</label>
+                <input type="file" name="file" id="defaultConfig" class="form-control" accept=".conf" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">上传</button>
+        </form>
+        <form action="/upload/customer" method="post" enctype="multipart/form-data" class="mb-3">
+            <div class="form-group">
+                <label for="customerConfig">用户配置文件:</label>
+                <input type="file" name="file" id="customerConfig" class="form-control" accept=".conf" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">上传</button>
+        </form>
+        <button id="compare-btn" class="btn btn-warning btn-block" disabled>对比</button>
+        <button id="download-btn" class="btn btn-success btn-block" disabled onclick="location.href='/generate_diff'">下载差异xlsx</button>
+        <script>
+            let defaultUploaded = false;
+            let customerUploaded = false;
+
+            function showAlert(message, type = 'info', autoDismiss = true) {
+                const alertContainer = document.getElementById('alert-container');
+                alertContainer.className = `alert alert-${type} text-center`;
+                alertContainer.innerText = message;
+                alertContainer.style.display = 'block';
+                if (autoDismiss) {
+                    setTimeout(() => {
+                        alertContainer.style.display = 'none';
+                    }, 3000);
+                }
+            }
+
+            async function uploadConfig(url, formData, type) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        showAlert(result.message, 'success');
+                        if (type === 'default') defaultUploaded = true;
+                        if (type === 'customer') customerUploaded = true;
+                        // 启用对比按钮
+                        if (defaultUploaded && customerUploaded) {
+                            document.getElementById('compare-btn').disabled = false;
+                        }
+                    } else {
+                        showAlert('Error: ' + result.error + '\nDetails: ' + result.details, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Failed to upload: ' + error.message, 'danger');
+                }
+            }
+
+            document.querySelector('form[action="/upload/default"]').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+                uploadConfig('/upload/default', formData, 'default');
+            });
+
+            document.querySelector('form[action="/upload/customer"]').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+                uploadConfig('/upload/customer', formData, 'customer');
+            });
+
+            document.getElementById('compare-btn').addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/generate_diff');
+                    if (response.ok) {
+                        showAlert('对比完成，可以下载XLSX', 'success', false);
+                        document.getElementById('download-btn').disabled = false;
+                    } else {
+                        const result = await response.json();
+                        showAlert('Error: ' + result.error + '\nDetails: ' + result.details, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Failed to compare: ' + error.message, 'danger');
+                }
+            });
+
+            document.getElementById('download-btn').addEventListener('click', function() {
+                window.location.href = '/generate_diff';
+            });
+        </script>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
